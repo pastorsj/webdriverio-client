@@ -16,7 +16,7 @@
 const _ = require('lodash')
 const Q = require('q')
 const path = require('path')
-const fs = require('fs')
+const fs = require('fs-extra')
 const exec = require('child_process').exec
 const sleep = require('sleep')
 const argv = require('minimist')(process.argv.slice(2), {
@@ -64,12 +64,46 @@ const ns = {
     return this.exec('rm -rf ' + filename)
   },
 
+  copyIntoAllDirectories (file, testsDir, directories) {
+    directories.forEach((dir) => {
+      fs.copySync(path.join(testsDir, file), path.join(testsDir, 'tmp', dir, file))
+    })
+  },
+
+  createTmpDirectory () {
+    const testsDir = path.join(__dirname, '../../..', 'tests', 'e2e')
+    // Recreate tmp directory
+    let tmpDir = path.join(testsDir, 'tmp')
+    fs.emptyDirSync(tmpDir)
+    let files = fs.readdirSync(testsDir)
+    let newDirectories = []
+    files.forEach((file) => {
+      if (file.endsWith('e2e.js')) {
+          const fname = file.slice(0, -3)
+          newDirectories.push(fname)
+          fs.ensureDirSync(path.join(tmpDir, fname))
+      }
+    })
+    let movedConfig = false
+    files.forEach((file) => {
+      if(file === 'jasmine.json' || file === 'aaa-spec.js') {
+        this.copyIntoAllDirectories(file, testsDir, newDirectories)
+      } else if(!file.endsWith('e2e.js') && file.endsWith('.js')) {
+        this.copyIntoAllDirectories(file, testsDir, newDirectories)
+      } else if(file === 'config.json' && !movedConfig) {
+        fs.copySync(path.join(testsDir, file), path.join(testsDir, 'tmp', file))
+        movedConfig = true
+      }
+    })
+  },
+
   /**
    * obvious
    * @param {String[]} extras - extra files/directories to include in tarball
    * @returns {Promise} resolved when done
    */
   tarUpAppAndTestsDirectory (extras) {
+    this.createTmpDirectory()
     let cmd = ['tar', '--exclude="*.map"', '-czf', 'test.tar.gz',
                process.env['E2E_TESTS_DIR'], process.env['BUILD_OUTPUT_DIR']]
     cmd = cmd.concat(extras)
@@ -177,6 +211,10 @@ const ns = {
         '"tests-folder=' + process.env['E2E_TESTS_DIR'] + '"',
         server + '/'
       ]
+      if (server.startsWith('localhost')) {
+        cmd.splice(2, 0, '-H')
+        cmd.splice(3, 0, '"x-forwarded-for: 127.0.0.1"')
+      }
       console.log('Running command: ' + cmd.join(' '))
 
       return this.exec(cmd.join(' '))
@@ -190,11 +228,11 @@ const ns = {
         return timestamp
       })
       .catch((err) => {
-        throw new Error('The server responded with: Exec failed ' + err)
+        throw new Error(err)
       })
     })
     .catch((err) => {
-      throw new Error('The server responded with: ' + err)
+      throw new Error(err)
     })
   },
 
