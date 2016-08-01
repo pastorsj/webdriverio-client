@@ -79,18 +79,19 @@ const ns = {
     let newDirectories = []
     files.forEach((file) => {
       if (file.endsWith('e2e.js')) {
-          const fname = file.slice(0, -3)
-          newDirectories.push(fname)
-          fs.ensureDirSync(path.join(tmpDir, fname))
+        const fname = file.slice(0, -3)
+        newDirectories.push(fname)
+        fs.ensureDirSync(path.join(tmpDir, fname))
+        fs.copySync(path.join(testsDir, file), path.join(tmpDir, fname, file))
       }
     })
     let movedConfig = false
     files.forEach((file) => {
-      if(file === 'jasmine.json' || file === 'aaa-spec.js') {
+      if (file === 'jasmine.json' || file === 'aaa-spec.js' || file === 'test-config.json') {
         this.copyIntoAllDirectories(file, testsDir, newDirectories)
-      } else if(!file.endsWith('e2e.js') && file.endsWith('.js')) {
+      } else if (!file.endsWith('e2e.js') && file.endsWith('.js')) {
         this.copyIntoAllDirectories(file, testsDir, newDirectories)
-      } else if(file === 'config.json' && !movedConfig) {
+      } else if (file === 'config.json' && !movedConfig) {
         fs.copySync(path.join(testsDir, file), path.join(testsDir, 'tmp', file))
         movedConfig = true
       }
