@@ -65,9 +65,18 @@ const ns = {
   },
 
   copyIntoAllDirectories (file, testsDir, directories) {
-    directories.forEach((dir) => {
-      fs.copySync(path.join(testsDir, file), path.join(testsDir, 'tmp', dir, file))
-    })
+    if (file === 'jasmine.json') {
+      directories.forEach((dir) => {
+        let jasmineFile = {}
+        jasmineFile['spec_dir'] = dir
+        jasmineFile['spec_files'] = ['*-spec.js']
+        fs.writeFileSync(path.join(testsDir, 'tmp', dir, file), JSON.stringify(jasmineFile, null, 2))
+      })
+    } else {
+      directories.forEach((dir) => {
+        fs.copySync(path.join(testsDir, file), path.join(testsDir, 'tmp', dir, file))
+      })
+    }
   },
 
   createTmpDirectory () {
