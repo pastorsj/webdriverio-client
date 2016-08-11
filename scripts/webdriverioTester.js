@@ -213,8 +213,7 @@ const ns = {
         server + '/'
       ]
       if (server.startsWith('localhost')) {
-        cmd.splice(2, 0, '-H')
-        cmd.splice(3, 0, '"x-forwarded-for: 127.0.0.1"')
+        cmd.splice(2, 0, '-H "x-forwarded-for: 127.0.0.1"')
       }
       console.log('Running command: ' + cmd.join(' '))
 
